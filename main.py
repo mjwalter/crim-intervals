@@ -2,56 +2,68 @@ from main_objs import *
 
 # Potential redesign needed due to unstable nature of having user give over patterns_data
 # Potential fix is reincorporating into_patterns back into this method
-def find_exact_matches(patterns_data, min_matches=5):
-    """Takes in a series of vector patterns with data attached and finds exact matches
+def find_exact_matches(patterns_data, minimum_number_of_occurrences=5):
+    """Takes in a series of interval/vector patterns, with data attached,
+    and finds exact matches.
 
     Parameters
     ----------
     patterns_data : return value from into_patterns
         MUST be return value from into_patterns
-    min_matches : int, optional
-        Minimum number of matches needed to be deemed relevant, defaults to 5
+    minimum_number_of_occurrences : int, optional
+        Minimum number of occurrences a pattern needs to be deemed relevant
+        (defaults to 5)
 
     Returns
     -------
     all_matches_list : list
-        A list of PatternMatches objects
+        A list of PatternMatches objects -- each PatternMatches object
+        contains a pattern as well as a list of Match objects for that pattern
     """
     # A series of arrays are needed to keep track of various data associated with each pattern
     print("Finding exact matches...")
-    patterns_nodup, patterns = [], []
-    p = 0
-    for pattern in patterns_data:
-        patterns.append(pattern[0])
-        if pattern[0] not in patterns_nodup:
-            patterns_nodup.append(pattern[0])
-    m = 0
+    # `patterns_data` is a list of tuples. The first element of each tuple is a
+    # pattern, and the other elements are the first and last notes and the note
+    # durations.
+    # First, we create two lists of patterns: one is a list of all distinct
+    # patterns (without duplicates); the other is a list of all patterns.
+    # Both these lists OMIT the extra information about each pattern; they
+    # contain just generic information about the intervals.
+    patterns = [p[0] for p in patterns_data]
+    patterns_nodup = list(dict.fromkeys(patterns))  # creates new list from `patterns` but with no duplicates
+
     # Go through each individual pattern and count up its occurences
-    all_matches_list = []
-    for p in patterns_nodup:
-        amt = patterns.count(p)
+    all_match_lists = []
+    for pattern in patterns_nodup:
+        number_of_occurrences = patterns.count(pattern)
         # If a pattern occurs more than the designated threshold, we add it to our list of matches
-        if amt > min_matches:
-            matches_list = PatternMatches(p, [])
-            m += 1
-            for a in patterns_data:
-                if p == a[0]:
-                    exact_match = Match(p, a[1], a[2], a[3])
-                    matches_list.matches.append(exact_match)
-            all_matches_list.append(matches_list)
-    print(str(len(all_matches_list)) + " melodic intervals had more than " + str(min_matches) + " exact matches.\n")
-    # all_matches_list has a nested structure- it contains a list of PatternMatches objects, which contain a list of individual Match objects
-    return all_matches_list
+        if number_of_occurrences >= minimum_number_of_occurrences:
+            # Go through all the patterns (with data) and if it patches the
+            # generic pattern in question, add the instance with data to a list
+            # of matches
+            matches = []
+            for pattern_with_data in patterns_data:
+                if pattern = pattern_with_data[0]:
+                    pattern_match = Match(*pattern_with_data)
+                    matches.append(pattern_match)
+            match_list = PatternMatches(pattern, matches)
+            all_match_lists.append(match_list)
+    print("{} melodic intervals had at least {} exact matches.".format(
+        len(all_matches_list)),
+        minimum_number_of_occurrences,
+    ))
+
+    return all_match_lists
 
 # Finds matches based on a cumulative distance difference between two patterns
-def find_close_matches(patterns_data, min_matches, threshold):
-    """Takes in a series of vector patterns with data attached and finds close matches
+def find_close_matches(patterns_data, minimum_number_of_occurrences, threshold):
+    """Takes in a series of intervals/vectors with data attached and finds close matches
 
     Parameters
     ----------
     patterns_data : return value from into_patterns
         MUST be return value from into_patterns
-    min_matches : int, optional
+    minimum_number_of_occurrences : int, optional
         Minimum number of matches needed to be deemed relevant, defaults to 5
     threshold : int
         Cumulative variance allowed between vector patterns before they are deemed not similar
@@ -61,7 +73,7 @@ def find_close_matches(patterns_data, min_matches, threshold):
     all_matches_list : list
         A list of PatternMatches objects
     """
-    # A series of arrays are needed to keep track of various data associated with each pattern
+    # A series of arrays is needed to keep track of various data associated with each pattern
     print("Finding close matches...")
     patterns_nodup = []
     for pat in patterns_data:
@@ -81,22 +93,22 @@ def find_close_matches(patterns_data, min_matches, threshold):
             if match <= threshold:
                 close_match = Match(a[0], a[1], a[2], a[3])
                 matches_list.matches.append(close_match)
-        if len(matches_list.matches) > min_matches:
+        if len(matches_list.matches) >= minimum_number_of_occurrences:
             all_matches_list.append(matches_list)
-    print(str(len(all_matches_list)) + " melodic intervals had more than " + str(min_matches) + " exact or close matches.\n")
+    print(str(len(all_matches_list)) + " melodic intervals had at least " + str(minimum_number_of_occurrences) + " exact or close matches.\n")
     return all_matches_list
 
 # Allows for the addition of non-moving-window pattern searching approaches
 # Needs to be called before any matches can be made
-def into_patterns(vectors_list, interval):
+def into_patterns(vectors_list, match_length):
     """Takes in a series of vector patterns with data attached and finds close matches
 
     Parameters
     ----------
     vectors_list : list of vectorized lists
         MUST be a list from calling generic_intervals or semitone_intervals on a VectorInterval object
-    interval : int
-        size of interval to be analyzed
+    match_length : int
+        the number of intervals/vectors to be included in each match
 
     Returns
     -------
@@ -105,12 +117,12 @@ def into_patterns(vectors_list, interval):
     """
     pattern, patterns_data = [], []
     for vectors in vectors_list:
-        for i in range(len(vectors)-interval):
+        for i in range(len(vectors)-number_of_notes_in_pattern):
             pattern = []
             durations = []
             valid_pattern = True
             durations.append(vectors[i].note1.duration)
-            for num_notes in range(interval):
+            for num_notes in range(match_length):
                 if vectors[i+num_notes].vector == 'Rest':
                     valid_pattern = False
                 pattern.append(vectors[i+num_notes].vector)
@@ -295,15 +307,15 @@ def assisted_interface():
         patterns = into_patterns([vectors.generic_intervals], pattern_size)
     if interval_type == '2':
         patterns = into_patterns([vectors.semitone_intervals], pattern_size)
-    min_matches = int(input("Enter the minimum number of matches needed to be displayed: "))
+    minimum_number_of_occurrences = int(input("Enter the minimum number of matches needed to be displayed: "))
     close_or_exact = input("Enter 1 to include close matches or enter 2 for only exact matches: ")
     while close_or_exact != '1' and close_or_exact != '2':
         close_or_exact = input("Invalid input, enter 1 for close matches or 2 for only exact matches: ")
     if close_or_exact == '1':
         max_dif = int(input("Enter the maximum total distance threshold for a close match: "))
-        matches = find_close_matches(patterns, min_matches, max_dif)
+        matches = find_close_matches(patterns, minimum_number_of_occurrences, max_dif)
     if close_or_exact == '2':
-        matches = find_exact_matches(patterns, min_matches)
+        matches = find_exact_matches(patterns, minimum_number_of_occurrences)
     csv_results = input("Export results to CSV? (y/n): ").lower()
     if csv_results == 'y' or csv_results == 'yes':
         export_to_csv(matches)
