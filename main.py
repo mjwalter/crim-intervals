@@ -43,13 +43,13 @@ def find_exact_matches(patterns_data, minimum_number_of_occurrences=5):
             # of matches
             matches = []
             for pattern_with_data in patterns_data:
-                if pattern = pattern_with_data[0]:
+                if pattern == pattern_with_data[0]:
                     pattern_match = Match(*pattern_with_data)
                     matches.append(pattern_match)
             match_list = PatternMatches(pattern, matches)
             all_match_lists.append(match_list)
     print("{} melodic intervals had at least {} exact matches.".format(
-        len(all_matches_list)),
+        len(all_matches_list),
         minimum_number_of_occurrences,
     ))
 
